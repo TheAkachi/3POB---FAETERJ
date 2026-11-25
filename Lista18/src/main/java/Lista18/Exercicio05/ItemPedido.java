@@ -13,7 +13,15 @@ public class ItemPedido {
         this.valorUnitario = valorUnitario;
     }
 
-    public String getDescricao() { return descricao; }
-    public Integer getQuantidade() { return quantidade; }
-    public BigDecimal getValorUnitario() { return valorUnitario; }
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public Integer getQuantidade() {
+        return quantidade;
+    }
+
+    public BigDecimal getValorUnitario() {
+        return valorUnitario;
+    }
 }
