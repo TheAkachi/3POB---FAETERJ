@@ -1,9 +1,20 @@
 package Lista18.Exercicio04;
-import Lista18.infra.ConnectionFactory; import java.sql.*; import java.util.*;
+
+import Lista18.infra.ConnectionFactory;
+import java.sql.Connection;
+import java.sql.SQLException;
+
 public class Main {
- static class Cliente {Long id;final String nome,email,cpf;Cliente(String n,String e,String c){nome=n;email=e;cpf=c;}}
- interface ClienteDAO{Optional<Cliente> buscarPorCpf(String cpf)throws SQLException;void salvar(Cliente cliente)throws SQLException;}
- static class ClienteDAOImpl implements ClienteDAO{final Connection c;ClienteDAOImpl(Connection c){this.c=c;}public Optional<Cliente> buscarPorCpf(String cpf)throws SQLException{try(PreparedStatement p=c.prepareStatement("SELECT id,nome,email,cpf FROM clientes WHERE cpf=?")){p.setString(1,cpf);try(ResultSet r=p.executeQuery()){if(!r.next())return Optional.empty();Cliente x=new Cliente(r.getString("nome"),r.getString("email"),r.getString("cpf"));x.id=r.getLong("id");return Optional.of(x);}}}public void salvar(Cliente x)throws SQLException{try(PreparedStatement p=c.prepareStatement("INSERT INTO clientes(nome,email,cpf) VALUES(?,?,?)",Statement.RETURN_GENERATED_KEYS)){p.setString(1,x.nome);p.setString(2,x.email);p.setString(3,x.cpf);p.executeUpdate();try(ResultSet k=p.getGeneratedKeys()){if(k.next())x.id=k.getLong(1);}}}}
- static class ClienteService{final ClienteDAO dao;ClienteService(ClienteDAO d){dao=d;}void cadastrarCliente(Cliente x)throws SQLException{if(x==null)throw new IllegalArgumentException("Cliente obrigatório.");if(x.email==null||x.email.isBlank())throw new IllegalArgumentException("E-mail não pode ser vazio.");if(x.cpf==null||x.cpf.isBlank())throw new IllegalArgumentException("CPF não pode ser vazio.");if(dao.buscarPorCpf(x.cpf).isPresent())throw new IllegalArgumentException("CPF já cadastrado.");dao.salvar(x);}}
- public static void main(String[] args){try(Connection c=ConnectionFactory.getConnection()){new ClienteService(new ClienteDAOImpl(c)).cadastrarCliente(new Cliente("João Lima","joao@email.com","12345678900"));System.out.println("Cliente cadastrado.");}catch(Exception e){System.err.println(e.getMessage());}}
+    public static void main(String[] args) {
+        try (Connection conn = ConnectionFactory.getConnection()) {
+            ClienteDAO clienteDAO = new ClienteDAOImpl(conn);
+            ClienteService clienteService = new ClienteService(clienteDAO);
+
+            Cliente cliente = new Cliente("João Lima", "joao@email.com", "12345678900");
+            clienteService.cadastrarCliente(cliente);
+            System.out.println("Cliente cadastrado com ID: " + cliente.getId());
+        } catch (SQLException | IllegalArgumentException e) {
+            System.out.println("Erro ao executar o exercício 4: " + e.getMessage());
+        }
+    }
 }
