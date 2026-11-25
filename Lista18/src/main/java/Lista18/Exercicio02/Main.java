@@ -1,14 +1,35 @@
 package Lista18.Exercicio02;
-import Lista18.infra.ConnectionFactory; import java.sql.*; import java.math.BigDecimal; import java.util.*;
+
+import Lista18.infra.ConnectionFactory;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
+
 public class Main {
- static class Produto {Long id;String descricao;BigDecimal precoUnitario;int quantidadeEstoque;Produto(String d,BigDecimal p,int q){descricao=d;precoUnitario=p;quantidadeEstoque=q;} public String toString(){return "Produto{"+id+", "+descricao+", "+precoUnitario+", estoque="+quantidadeEstoque+"}";} }
- interface GenericDAO<T,ID>{void salvar(T e)throws SQLException;Optional<T> buscarPorId(ID id)throws SQLException;List<T> listarTodos()throws SQLException;void atualizar(T e)throws SQLException;void deletarPorId(ID id)throws SQLException;}
- static class ProdutoDAOImpl implements GenericDAO<Produto,Long>{final Connection c;ProdutoDAOImpl(Connection c){this.c=c;} void preencher(PreparedStatement p,Produto x)throws SQLException{p.setString(1,x.descricao);p.setBigDecimal(2,x.precoUnitario);p.setInt(3,x.quantidadeEstoque);} Produto map(ResultSet r)throws SQLException{Produto x=new Produto(r.getString("descricao"),r.getBigDecimal("preco_unitario"),r.getInt("quantidade_estoque"));x.id=r.getLong("id");return x;}
- public void salvar(Produto x)throws SQLException{try(PreparedStatement p=c.prepareStatement("INSERT INTO produtos(descricao,preco_unitario,quantidade_estoque) VALUES(?,?,?)",Statement.RETURN_GENERATED_KEYS)){preencher(p,x);p.executeUpdate();try(ResultSet k=p.getGeneratedKeys()){if(k.next())x.id=k.getLong(1);}}}
- public Optional<Produto> buscarPorId(Long id)throws SQLException{try(PreparedStatement p=c.prepareStatement("SELECT * FROM produtos WHERE id=?")){p.setLong(1,id);try(ResultSet r=p.executeQuery()){return r.next()?Optional.of(map(r)):Optional.empty();}}}
- public List<Produto> listarTodos()throws SQLException{List<Produto> l=new ArrayList<>();try(PreparedStatement p=c.prepareStatement("SELECT * FROM produtos ORDER BY id");ResultSet r=p.executeQuery()){while(r.next())l.add(map(r));}return l;}
- public void atualizar(Produto x)throws SQLException{try(PreparedStatement p=c.prepareStatement("UPDATE produtos SET descricao=?,preco_unitario=?,quantidade_estoque=? WHERE id=?")){preencher(p,x);p.setLong(4,x.id);if(p.executeUpdate()==0)throw new SQLException("Produto não encontrado.");}}
- public void deletarPorId(Long id)throws SQLException{try(PreparedStatement p=c.prepareStatement("DELETE FROM produtos WHERE id=?")){p.setLong(1,id);if(p.executeUpdate()==0)throw new SQLException("Produto não encontrado.");}}
- }
- public static void main(String[] args){try(Connection c=ConnectionFactory.getConnection()){GenericDAO<Produto,Long> dao=new ProdutoDAOImpl(c);Produto p=new Produto("Teclado",new BigDecimal("120.00"),10);dao.salvar(p);System.out.println(dao.buscarPorId(p.id));p.quantidadeEstoque=8;dao.atualizar(p);System.out.println(dao.listarTodos());}catch(Exception e){System.err.println(e.getMessage());}}
+    public static void main(String[] args) {
+        try (Connection conn = ConnectionFactory.getConnection()) {
+            GenericDAO<Produto, Long> produtoDAO = new ProdutoDAOImpl(conn);
+            Produto produto = new Produto("Teclado", new BigDecimal("120.00"), 10);
+            produtoDAO.salvar(produto);
+            System.out.println("Produto cadastrado com ID: " + produto.getId());
+
+            Optional<Produto> encontrado = produtoDAO.buscarPorId(produto.getId());
+            System.out.println("Busca por ID: " + encontrado.orElse(null));
+
+            produto.setQuantidadeEstoque(8);
+            produtoDAO.atualizar(produto);
+            System.out.println("Produto atualizado.");
+
+            List<Produto> produtos = produtoDAO.listarTodos();
+            for (Produto item : produtos) {
+                System.out.println(item);
+            }
+
+            // Descomente para testar: produtoDAO.deletarPorId(produto.getId());
+        } catch (SQLException e) {
+            System.out.println("Erro ao executar o exercício 2: " + e.getMessage());
+        }
+    }
 }
