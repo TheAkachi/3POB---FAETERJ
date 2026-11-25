@@ -1,0 +1,12 @@
+package Lista18.Exercicio05;
+import Lista18.infra.ConnectionFactory; import java.sql.*; import java.math.BigDecimal; import java.util.*;
+public class Main {
+ static class Pedido{Long id;final long clienteId;Pedido(long c){clienteId=c;}}
+ static class ItemPedido{final String descricao;final int quantidade;final BigDecimal valorUnitario;ItemPedido(String d,int q,BigDecimal v){descricao=d;quantidade=q;valorUnitario=v;}}
+ interface PedidoDAO{long criarPedido(Connection conn,Pedido pedido)throws SQLException;}
+ interface ItemPedidoDAO{void salvarItens(Connection conn,long pedidoId,List<ItemPedido> itens)throws SQLException;}
+ static class PedidoDAOImpl implements PedidoDAO{public long criarPedido(Connection c,Pedido p)throws SQLException{try(PreparedStatement s=c.prepareStatement("INSERT INTO pedidos(cliente_id) VALUES(?)",Statement.RETURN_GENERATED_KEYS)){s.setLong(1,p.clienteId);s.executeUpdate();try(ResultSet k=s.getGeneratedKeys()){if(k.next()){p.id=k.getLong(1);return p.id;}}}throw new SQLException("ID do pedido não retornado.");}}
+ static class ItemPedidoDAOImpl implements ItemPedidoDAO{public void salvarItens(Connection c,long id,List<ItemPedido> itens)throws SQLException{try(PreparedStatement s=c.prepareStatement("INSERT INTO itens_pedido(pedido_id,descricao,quantidade,valor_unitario) VALUES(?,?,?,?)")){for(ItemPedido i:itens){s.setLong(1,id);s.setString(2,i.descricao);s.setInt(3,i.quantidade);s.setBigDecimal(4,i.valorUnitario);s.addBatch();}s.executeBatch();}}}
+ static class VendaService{final PedidoDAO pedidos;final ItemPedidoDAO itens;VendaService(PedidoDAO p,ItemPedidoDAO i){pedidos=p;itens=i;}long registrarVenda(Pedido p,List<ItemPedido> lista)throws SQLException{if(lista==null||lista.isEmpty())throw new IllegalArgumentException("Venda precisa ter itens.");try(Connection c=ConnectionFactory.getConnection()){c.setAutoCommit(false);try{long id=pedidos.criarPedido(c,p);itens.salvarItens(c,id,lista);c.commit();return id;}catch(SQLException|RuntimeException e){try{c.rollback();}catch(SQLException rollback){e.addSuppressed(rollback);}throw e;}}}}
+ public static void main(String[] args){VendaService s=new VendaService(new PedidoDAOImpl(),new ItemPedidoDAOImpl());try{long id=s.registrarVenda(new Pedido(1L),List.of(new ItemPedido("Teclado",1,new BigDecimal("120.00"))));System.out.println("Venda registrada. Pedido: "+id);}catch(Exception e){System.err.println(e.getMessage());}}
+}
